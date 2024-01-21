@@ -6,6 +6,7 @@ use crate::todos::todo_model::{Todo, TodoCreate};
 pub trait Storage<TData, TDataCreate> {
     async fn add(&mut self, item: TDataCreate) -> Result<(), Box<dyn Error>>;
     async fn list(&mut self) -> Result<Vec<TData>, Box<dyn Error>>;
+    async fn update(&mut self, item: TData) -> Result<(), Box<dyn Error>>;
 }
 
 pub(crate) struct TodoStore {
@@ -45,6 +46,15 @@ impl Storage<Todo, TodoCreate> for TodoStore {
         }
 
         Ok(result)
+    }
+
+    async fn update(&mut self, item: Todo) -> Result<(), Box<dyn Error>> {
+        let query = "UPDATE todos SET completed = $2 WHERE id = $2";
+        sqlx::query(query)
+            .bind(item.completed)
+            .bind(item.id)
+            .execute(&self.db).await?;
+        Ok(())
     }
 }
 
