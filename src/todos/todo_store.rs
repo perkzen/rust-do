@@ -1,8 +1,12 @@
 use std::error::Error;
 use sqlx::Row;
 use sqlx::types::chrono::NaiveDateTime;
-use crate::store::storage::Storage;
-use crate::store::todo::{Todo, TodoCreate};
+use crate::todos::todo_model::{Todo, TodoCreate};
+
+pub trait Storage<TData, TDataCreate> {
+    async fn add(&mut self, item: TDataCreate) -> Result<(), Box<dyn Error>>;
+    async fn list(&mut self) -> Result<Vec<TData>, Box<dyn Error>>;
+}
 
 pub(crate) struct TodoStore {
     pub(crate) db: sqlx::SqlitePool,
@@ -46,8 +50,8 @@ impl Storage<Todo, TodoCreate> for TodoStore {
 #[cfg(test)]
 mod tests {
     use crate::db::connection::get_database_connection_pool;
-    use crate::store::storage::Storage;
-    use crate::store::todo::TodoCreate;
+    use crate::todos::todo_model::TodoCreate;
+    use crate::todos::todo_store::Storage;
 
     #[tokio::test]
     async fn test_add_todo() {

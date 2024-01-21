@@ -1,13 +1,12 @@
 mod commands;
-mod store;
+mod todos;
 mod db;
 
 use clap::{Command};
 use commands::todo_cmd::{add_todo, list_todos};
-use store::todo_store::{TodoStore};
-use store::todo::{TodoCreate};
+use todos::todo_store::{TodoStore, Storage};
+use todos::todo_model::{TodoCreate};
 use crate::db::connection::get_database_connection_pool;
-use crate::store::storage::Storage;
 
 
 #[tokio::main]
@@ -24,15 +23,13 @@ async fn main() {
     let mut todo_store = TodoStore::new(db);
 
 
-    let arg = Command::new("rd")
+    let cmd = Command::new("rd")
         .about("Rust do is a todo list manager written in Rust")
         .subcommand_required(true)
         .subcommand(list_todos())
-        .subcommand(add_todo());
+        .subcommand(add_todo()).get_matches();
 
-    let matches = arg.get_matches();
-
-    match matches.subcommand() {
+    match cmd.subcommand() {
         Some(("list", _)) => {
             let todos = todo_store.list().await.unwrap();
             for todo in todos {
