@@ -5,6 +5,8 @@ use clap::{Command};
 use sqlx::{Connection, Error, SqliteConnection};
 use commands::todo_cmd::{add_todo, list_todos};
 use store::todo_store::{TodoStore};
+use store::todo::{TodoCreate};
+use crate::store::storage::Storage;
 
 
 async fn database_connection() -> Result<SqliteConnection, Error> {
@@ -40,7 +42,8 @@ async fn main() {
         }
         Some(("add", sub_matches)) => {
             let title = sub_matches.get_one::<String>("title").unwrap();
-            todo_store.add(title.to_string()).await.unwrap();
+            let new_todo = TodoCreate { title: title.to_string() };
+            todo_store.add(new_todo).await.unwrap();
         }
         _ => println!("No command found"),
     }

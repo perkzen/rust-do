@@ -2,36 +2,31 @@ use sqlx::SqliteConnection;
 use std::error::Error;
 use sqlx::Row;
 use sqlx::types::chrono::NaiveDateTime;
-
-
-pub struct Todo {
-    pub title: String,
-    pub completed: bool,
-    pub created_at: NaiveDateTime,
-}
+use crate::store::storage::Storage;
+use crate::store::todo::{Todo, TodoCreate};
 
 
 pub(crate) struct TodoStore {
-    db: SqliteConnection,
+    pub(crate) db: SqliteConnection,
 }
 
 
 impl TodoStore {
     pub fn new(db: SqliteConnection) -> TodoStore {
-        TodoStore {
-            db
-        }
+        TodoStore { db }
     }
+}
 
-    pub async fn add(&mut self, title: String) -> Result<(), Box<dyn Error>> {
+impl Storage<Todo, TodoCreate> for TodoStore {
+    async fn add(&mut self, item: TodoCreate) -> Result<(), Box<dyn Error>> {
         let query = "INSERT INTO todos (title) VALUES ($1)";
         sqlx::query(query)
-            .bind(title)
+            .bind(item.title)
             .execute(&mut self.db).await?;
         Ok(())
     }
 
-    pub async fn list(&mut self) -> Result<Vec<Todo>, Box<dyn Error>> {
+    async fn list(&mut self) -> Result<Vec<Todo>, Box<dyn Error>> {
         let query = "SELECT id, title, created_at, completed FROM todos";
         let todos = sqlx::query(query)
             .fetch_all(&mut self.db)
@@ -50,3 +45,4 @@ impl TodoStore {
         Ok(result)
     }
 }
+
