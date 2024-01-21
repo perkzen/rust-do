@@ -57,7 +57,6 @@ impl<T: Clone + Display> Select<T> {
     }
 
 
-
     pub fn print_prompt(&mut self) {
         std::process::Command::new("clear").status().unwrap();
 
@@ -65,7 +64,8 @@ impl<T: Clone + Display> Select<T> {
         prompt.push_str("\n");
 
         for (i, item) in self.items.iter().enumerate() {
-            let line = format!("{}\n", item.to_string());
+            let mark = if self.marked.contains(&i) { "X" } else { " " };
+            let line = format!("[{}] {}\n", mark, item.to_string());
 
             if i == self.arrow_pos {
                 prompt.push_str(&format!("> {}", line.green()));

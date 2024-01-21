@@ -16,7 +16,7 @@ pub struct TodoCreate {
 
 impl Display for Todo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let completed = if self.completed { "X" } else { " " };
-        write!(f, "{}", format!("[{}] {} - {}", completed, self.title, self.created_at))
+        // let completed = if self.completed { "X" } else { " " };
+        write!(f, "{}", format!("{} - {}", self.title, self.created_at))
     }
 }
