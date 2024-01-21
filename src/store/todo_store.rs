@@ -1,18 +1,15 @@
-use sqlx::SqliteConnection;
 use std::error::Error;
 use sqlx::Row;
 use sqlx::types::chrono::NaiveDateTime;
 use crate::store::storage::Storage;
 use crate::store::todo::{Todo, TodoCreate};
 
-
 pub(crate) struct TodoStore {
-    pub(crate) db: SqliteConnection,
+    pub(crate) db: sqlx::SqlitePool,
 }
 
-
 impl TodoStore {
-    pub fn new(db: SqliteConnection) -> TodoStore {
+    pub fn new(db: sqlx::SqlitePool) -> TodoStore {
         TodoStore { db }
     }
 }
@@ -22,14 +19,14 @@ impl Storage<Todo, TodoCreate> for TodoStore {
         let query = "INSERT INTO todos (title) VALUES ($1)";
         sqlx::query(query)
             .bind(item.title)
-            .execute(&mut self.db).await?;
+            .execute(&self.db).await?;
         Ok(())
     }
 
     async fn list(&mut self) -> Result<Vec<Todo>, Box<dyn Error>> {
         let query = "SELECT id, title, created_at, completed FROM todos";
         let todos = sqlx::query(query)
-            .fetch_all(&mut self.db)
+            .fetch_all(&self.db)
             .await?;
 
         let mut result = Vec::new();
@@ -46,3 +43,24 @@ impl Storage<Todo, TodoCreate> for TodoStore {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::db::connection::get_database_connection_pool;
+    use crate::store::storage::Storage;
+    use crate::store::todo::TodoCreate;
+
+    #[tokio::test]
+    async fn test_add_todo() {
+        let db = get_database_connection_pool("sqlite::memory:").await.unwrap();
+        sqlx::migrate!("./migrations").run(&db).await.unwrap();
+
+        let mut todo_store = super::TodoStore::new(db);
+
+        let todo = TodoCreate { title: "test".to_string() };
+        todo_store.add(todo).await.unwrap();
+
+        let todos = todo_store.list().await.unwrap();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].title, "test")
+    }
+}

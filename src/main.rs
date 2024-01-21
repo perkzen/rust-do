@@ -1,22 +1,19 @@
 mod commands;
 mod store;
+mod db;
 
 use clap::{Command};
-use sqlx::{Connection, Error, SqliteConnection};
 use commands::todo_cmd::{add_todo, list_todos};
 use store::todo_store::{TodoStore};
 use store::todo::{TodoCreate};
+use crate::db::connection::get_database_connection_pool;
 use crate::store::storage::Storage;
 
 
-async fn get_database_connection() -> Result<SqliteConnection, Error> {
-    let connection_url = "sqlite:rustdo.db";
-    return SqliteConnection::connect(connection_url).await;
-}
-
 #[tokio::main]
 async fn main() {
-    let db = get_database_connection().await.unwrap_or_else(|err| {
+    let connection_url = "sqlite:rustdo.db";
+    let db = get_database_connection_pool(connection_url).await.unwrap_or_else(|err| {
         eprintln!("Could not connect to database: {}", err);
         std::process::exit(1);
     });
