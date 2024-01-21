@@ -18,6 +18,8 @@ async fn main() {
         std::process::exit(1);
     });
 
+    sqlx::migrate!("./migrations").run(&db).await.unwrap();
+
 
     let mut todo_store = TodoStore::new(db);
 
