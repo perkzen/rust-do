@@ -35,11 +35,12 @@ impl Storage<Todo, TodoCreate> for TodoStore {
 
         let mut result = Vec::new();
         for row in todos {
+            let id: i32 = row.try_get("id")?;
             let title: String = row.try_get("title")?;
             let completed: bool = row.try_get("completed")?;
             let created_at: NaiveDateTime = row.try_get("created_at")?;
 
-            let todo = Todo { title, completed, created_at };
+            let todo = Todo { id, title, completed, created_at };
             result.push(todo);
         }
 

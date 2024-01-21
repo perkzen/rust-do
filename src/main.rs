@@ -1,12 +1,15 @@
 mod commands;
 mod todos;
 mod db;
+mod ui;
 
 use clap::{Command};
 use commands::todo_cmd::{add_todo, list_todos};
 use todos::todo_store::{TodoStore, Storage};
 use todos::todo_model::{TodoCreate};
+use ui::select::Select;
 use crate::db::connection::get_database_connection_pool;
+use crate::todos::todo_model::Todo;
 
 
 #[tokio::main]
@@ -32,9 +35,11 @@ async fn main() {
     match cmd.subcommand() {
         Some(("list", _)) => {
             let todos = todo_store.list().await.unwrap();
-            for todo in todos {
-                println!("{} - {}", todo.title, todo.created_at);
-            }
+            Select::<Todo>::new()
+                .with_prompt("Select a todo")
+                .items(&todos)
+                .default(0)
+                .run();
         }
         Some(("add", sub_matches)) => {
             let title = sub_matches.get_one::<String>("title").unwrap();
