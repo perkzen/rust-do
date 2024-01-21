@@ -9,14 +9,14 @@ use store::todo::{TodoCreate};
 use crate::store::storage::Storage;
 
 
-async fn database_connection() -> Result<SqliteConnection, Error> {
+async fn get_database_connection() -> Result<SqliteConnection, Error> {
     let connection_url = "sqlite:rustdo.db";
     return SqliteConnection::connect(connection_url).await;
 }
 
 #[tokio::main]
 async fn main() {
-    let db = database_connection().await.unwrap_or_else(|err| {
+    let db = get_database_connection().await.unwrap_or_else(|err| {
         eprintln!("Could not connect to database: {}", err);
         std::process::exit(1);
     });
