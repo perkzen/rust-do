@@ -2,12 +2,7 @@ use std::error::Error;
 use sqlx::Row;
 use sqlx::types::chrono::NaiveDateTime;
 use crate::todos::todo_model::{Todo, TodoCreate, TodoUpdate};
-
-pub trait Storage<TData, TDataCreate, TDataUpdate> {
-    async fn add(&mut self, item: TDataCreate) -> Result<(), Box<dyn Error>>;
-    async fn list(&mut self) -> Result<Vec<TData>, Box<dyn Error>>;
-    async fn update(&mut self, item: TDataUpdate) -> Result<(), Box<dyn Error>>;
-}
+use crate::traits::storage::Storage;
 
 pub(crate) struct TodoStore {
     pub(crate) db: sqlx::SqlitePool,

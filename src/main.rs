@@ -2,14 +2,16 @@ mod commands;
 mod todos;
 mod db;
 mod ui;
+mod traits;
 
 use clap::{Command};
 use commands::todo_cmd::{add_todo, list_todos};
-use todos::todo_store::{TodoStore, Storage};
+use todos::todo_store::{TodoStore};
 use todos::todo_model::{TodoCreate};
 use ui::select::Select;
 use crate::db::connection::get_database_connection_pool;
 use crate::todos::todo_model::{Todo, TodoUpdate};
+use crate::traits::storage::Storage;
 
 
 #[tokio::main]

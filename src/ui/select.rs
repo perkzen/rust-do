@@ -3,7 +3,7 @@ use std::io::{stdout, Write};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use crossterm::style::Stylize;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use crate::todos::todo_model::HasId;
+use crate::traits::has_id::HasId;
 
 pub struct Select<T> where T: Clone + Display + HasId {
     prompt: String,
