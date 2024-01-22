@@ -3,15 +3,16 @@ use std::io::{stdout, Write};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use crossterm::style::Stylize;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use crate::todos::todo_model::HasId;
 
-pub struct Select<T> where T: Clone + Display {
+pub struct Select<T> where T: Clone + Display + HasId {
     prompt: String,
     items: Vec<T>,
     arrow_pos: usize,
-    marked: Vec<usize>,
+    marked: Vec<T>,
 }
 
-impl<T: Clone + Display> Select<T> {
+impl<T: Clone + Display + HasId> Select<T> {
     pub fn new() -> Select<T> {
         Select {
             prompt: "".to_string(),
@@ -36,26 +37,32 @@ impl<T: Clone + Display> Select<T> {
         self
     }
 
-    fn mark(&mut self, index: usize) {
-        if !self.marked.contains(&index) {
-            self.marked.push(index);
+    pub fn set_marked(mut self, marked: Vec<T>) -> Select<T> {
+        self.marked = marked;
+        self
+    }
+
+    pub fn get_marked(&self) -> Vec<T> {
+        self.marked.clone()
+    }
+
+    fn mark(&mut self, id: i32) {
+        if let Some(item) = self.items.iter().find(|x| x.get_id() == id) {
+            self.marked.push(item.clone());
         }
     }
 
-    fn unmark(&mut self, index: usize) {
-        if let Some(pos) = self.marked.iter().position(|x| *x == index) {
-            self.marked.remove(pos);
-        }
+    fn unmark(&mut self, id: i32) {
+        self.marked.retain(|x| x.get_id() != id);
     }
 
-    fn toggle_mark(&mut self, index: usize) {
-        if self.marked.contains(&index) {
-            self.unmark(index);
+    fn toggle_mark(&mut self, id: i32) {
+        if self.marked.iter().any(|x| x.get_id() == id) {
+            self.unmark(id);
         } else {
-            self.mark(index);
+            self.mark(id);
         }
     }
-
 
     pub fn print_prompt(&mut self) {
         std::process::Command::new("clear").status().unwrap();
@@ -64,7 +71,12 @@ impl<T: Clone + Display> Select<T> {
         prompt.push_str("\n");
 
         for (i, item) in self.items.iter().enumerate() {
-            let mark = if self.marked.contains(&i) { "X" } else { " " };
+            let mark = if self.marked.iter().any(|x| x.get_id() == item.get_id()) {
+                "x".to_string()
+            } else {
+                " ".to_string()
+            };
+
             let line = format!("[{}] {}\n", mark, item.to_string());
 
             if i == self.arrow_pos {
@@ -78,7 +90,7 @@ impl<T: Clone + Display> Select<T> {
         write!(stdout(), "{}", prompt).unwrap();
     }
 
-    pub fn run(mut self) {
+    pub fn run(mut self) -> Select<T> {
         self.print_prompt();
 
         loop {
@@ -102,7 +114,7 @@ impl<T: Clone + Display> Select<T> {
                             }
                         }
                         (KeyCode::Enter, KeyModifiers::NONE) => {
-                            self.toggle_mark(self.arrow_pos);
+                            self.toggle_mark(self.items[self.arrow_pos].get_id());
                         }
                         (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                             disable_raw_mode().unwrap();
@@ -116,5 +128,7 @@ impl<T: Clone + Display> Select<T> {
             disable_raw_mode().unwrap();
             self.print_prompt();
         }
+
+        return self;
     }
 }

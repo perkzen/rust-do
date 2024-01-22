@@ -9,7 +9,7 @@ use todos::todo_store::{TodoStore, Storage};
 use todos::todo_model::{TodoCreate};
 use ui::select::Select;
 use crate::db::connection::get_database_connection_pool;
-use crate::todos::todo_model::Todo;
+use crate::todos::todo_model::{Todo, TodoUpdate};
 
 
 #[tokio::main]
@@ -35,11 +35,37 @@ async fn main() {
     match cmd.subcommand() {
         Some(("list", _)) => {
             let todos = todo_store.list().await.unwrap();
-            Select::<Todo>::new()
+
+            let completed_todos: Vec<Todo> = todos
+                .iter()
+                .filter(|todo| todo.completed)
+                .map(|todo| todo.clone())
+                .collect();
+
+            let select = Select::<Todo>::new()
                 .with_prompt("Select a todo")
                 .items(&todos)
                 .default(0)
+                .set_marked(completed_todos)
                 .run();
+
+            let marked_todo_ids: Vec<i32> = select
+                .get_marked()
+                .iter()
+                .map(|todo| todo.id).
+                collect();
+
+
+            for todo in todos {
+                let is_completed = marked_todo_ids.contains(&todo.id);
+                todo_store
+                    .update(TodoUpdate {
+                        id: todo.id,
+                        completed: is_completed,
+                    })
+                    .await
+                    .unwrap();
+            }
         }
         Some(("add", sub_matches)) => {
             let title = sub_matches.get_one::<String>("title").unwrap();

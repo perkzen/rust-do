@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use sqlx::types::chrono::NaiveDateTime;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Todo {
     pub id: i32,
     pub title: String,
@@ -13,10 +13,24 @@ pub struct TodoCreate {
     pub title: String,
 }
 
+pub struct TodoUpdate {
+    pub id: i32,
+    pub completed: bool,
+}
+
 
 impl Display for Todo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // let completed = if self.completed { "X" } else { " " };
         write!(f, "{}", format!("{} - {}", self.title, self.created_at))
+    }
+}
+
+pub trait HasId {
+    fn get_id(&self) -> i32;
+}
+
+impl HasId for Todo {
+    fn get_id(&self) -> i32 {
+        self.id
     }
 }

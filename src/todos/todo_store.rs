@@ -1,12 +1,12 @@
 use std::error::Error;
 use sqlx::Row;
 use sqlx::types::chrono::NaiveDateTime;
-use crate::todos::todo_model::{Todo, TodoCreate};
+use crate::todos::todo_model::{Todo, TodoCreate, TodoUpdate};
 
-pub trait Storage<TData, TDataCreate> {
+pub trait Storage<TData, TDataCreate, TDataUpdate> {
     async fn add(&mut self, item: TDataCreate) -> Result<(), Box<dyn Error>>;
     async fn list(&mut self) -> Result<Vec<TData>, Box<dyn Error>>;
-    async fn update(&mut self, item: TData) -> Result<(), Box<dyn Error>>;
+    async fn update(&mut self, item: TDataUpdate) -> Result<(), Box<dyn Error>>;
 }
 
 pub(crate) struct TodoStore {
@@ -19,7 +19,7 @@ impl TodoStore {
     }
 }
 
-impl Storage<Todo, TodoCreate> for TodoStore {
+impl Storage<Todo, TodoCreate, TodoUpdate> for TodoStore {
     async fn add(&mut self, item: TodoCreate) -> Result<(), Box<dyn Error>> {
         let query = "INSERT INTO todos (title) VALUES ($1)";
         sqlx::query(query)
@@ -48,8 +48,8 @@ impl Storage<Todo, TodoCreate> for TodoStore {
         Ok(result)
     }
 
-    async fn update(&mut self, item: Todo) -> Result<(), Box<dyn Error>> {
-        let query = "UPDATE todos SET completed = $2 WHERE id = $2";
+    async fn update(&mut self, item: TodoUpdate) -> Result<(), Box<dyn Error>> {
+        let query = "UPDATE todos SET completed = $1 WHERE id = $2";
         sqlx::query(query)
             .bind(item.completed)
             .bind(item.id)
@@ -61,15 +61,18 @@ impl Storage<Todo, TodoCreate> for TodoStore {
 #[cfg(test)]
 mod tests {
     use crate::db::connection::get_database_connection_pool;
-    use crate::todos::todo_model::TodoCreate;
-    use crate::todos::todo_store::Storage;
+    use crate::todos::todo_model::{TodoCreate, TodoUpdate};
+    use crate::todos::todo_store::{Storage, TodoStore};
 
-    #[tokio::test]
-    async fn test_add_todo() {
+    async fn setup_todo_store() -> TodoStore {
         let db = get_database_connection_pool("sqlite::memory:").await.unwrap();
         sqlx::migrate!("./migrations").run(&db).await.unwrap();
+        TodoStore::new(db)
+    }
 
-        let mut todo_store = super::TodoStore::new(db);
+    #[tokio::test]
+    async fn test_add_and_list_todo() {
+        let mut todo_store = setup_todo_store().await;
 
         let todo = TodoCreate { title: "test".to_string() };
         todo_store.add(todo).await.unwrap();
@@ -77,5 +80,27 @@ mod tests {
         let todos = todo_store.list().await.unwrap();
         assert_eq!(todos.len(), 1);
         assert_eq!(todos[0].title, "test")
+    }
+
+    #[tokio::test]
+    async fn test_update_todo() {
+        let mut todo_store = setup_todo_store().await;
+
+        let todo = TodoCreate { title: "test".to_string() };
+        todo_store.add(todo).await.unwrap();
+
+        let todos = todo_store.list().await.unwrap();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].title, "test");
+        assert_eq!(todos[0].completed, false);
+
+        let todo = todos[0].clone();
+        let todo_update = TodoUpdate { id: todo.id, completed: true };
+        todo_store.update(todo_update).await.unwrap();
+
+        let todos = todo_store.list().await.unwrap();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].title, "test");
+        assert_eq!(todos[0].completed, true);
     }
 }
