@@ -22,7 +22,7 @@ pub struct TodoUpdate {
 
 impl Display for Todo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("{} - {}", self.title, self.created_at))
+        write!(f, "{}", format!("ID: {} {} - {}", self.id, self.title, self.created_at))
     }
 }
 

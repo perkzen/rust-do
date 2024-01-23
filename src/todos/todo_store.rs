@@ -15,15 +15,7 @@ impl TodoStore {
 }
 
 impl Storage<Todo, TodoCreate, TodoUpdate> for TodoStore {
-    async fn add(&mut self, item: TodoCreate) -> Result<(), Box<dyn Error>> {
-        let query = "INSERT INTO todos (title) VALUES ($1)";
-        sqlx::query(query)
-            .bind(item.title)
-            .execute(&self.db).await?;
-        Ok(())
-    }
-
-    async fn list(&mut self) -> Result<Vec<Todo>, Box<dyn Error>> {
+    async fn find_all(&mut self) -> Result<Vec<Todo>, Box<dyn Error>> {
         let query = "SELECT id, title, created_at, completed FROM todos";
         let todos = sqlx::query(query)
             .fetch_all(&self.db)
@@ -43,11 +35,34 @@ impl Storage<Todo, TodoCreate, TodoUpdate> for TodoStore {
         Ok(result)
     }
 
+    async fn create(&mut self, item: TodoCreate) -> Result<(), Box<dyn Error>> {
+        let query = "INSERT INTO todos (title) VALUES ($1)";
+        sqlx::query(query)
+            .bind(item.title)
+            .execute(&self.db).await?;
+        Ok(())
+    }
+
     async fn update(&mut self, item: TodoUpdate) -> Result<(), Box<dyn Error>> {
         let query = "UPDATE todos SET completed = $1 WHERE id = $2";
         sqlx::query(query)
             .bind(item.completed)
             .bind(item.id)
+            .execute(&self.db).await?;
+        Ok(())
+    }
+
+    async fn delete_one(&mut self, id: &i32) -> Result<(), Box<dyn Error>> {
+        let query = "DELETE FROM todos WHERE id = $1";
+        sqlx::query(query)
+            .bind(id)
+            .execute(&self.db).await?;
+        Ok(())
+    }
+
+    async fn delete_all(&mut self) -> Result<(), Box<dyn Error>> {
+        let query = "DELETE FROM todos";
+        sqlx::query(query)
             .execute(&self.db).await?;
         Ok(())
     }
@@ -70,9 +85,9 @@ mod tests {
         let mut todo_store = setup_todo_store().await;
 
         let todo = TodoCreate { title: "test".to_string() };
-        todo_store.add(todo).await.unwrap();
+        todo_store.create(todo).await.unwrap();
 
-        let todos = todo_store.list().await.unwrap();
+        let todos = todo_store.find_all().await.unwrap();
         assert_eq!(todos.len(), 1);
         assert_eq!(todos[0].title, "test")
     }
@@ -82,9 +97,9 @@ mod tests {
         let mut todo_store = setup_todo_store().await;
 
         let todo = TodoCreate { title: "test".to_string() };
-        todo_store.add(todo).await.unwrap();
+        todo_store.create(todo).await.unwrap();
 
-        let todos = todo_store.list().await.unwrap();
+        let todos = todo_store.find_all().await.unwrap();
         assert_eq!(todos.len(), 1);
         assert_eq!(todos[0].title, "test");
         assert_eq!(todos[0].completed, false);
@@ -93,9 +108,44 @@ mod tests {
         let todo_update = TodoUpdate { id: todo.id, completed: true };
         todo_store.update(todo_update).await.unwrap();
 
-        let todos = todo_store.list().await.unwrap();
+        let todos = todo_store.find_all().await.unwrap();
         assert_eq!(todos.len(), 1);
         assert_eq!(todos[0].title, "test");
         assert_eq!(todos[0].completed, true);
+    }
+
+    #[tokio::test]
+    async fn test_delete_todo() {
+        let mut todo_store = setup_todo_store().await;
+
+        let todo = TodoCreate { title: "test".to_string() };
+        todo_store.create(todo).await.unwrap();
+
+        let todos = todo_store.find_all().await.unwrap();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].title, "test");
+
+        let todo = todos[0].clone();
+        todo_store.delete_one(&todo.id).await.unwrap();
+
+        let todos = todo_store.find_all().await.unwrap();
+        assert_eq!(todos.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_delete_all_todos() {
+        let mut todo_store = setup_todo_store().await;
+
+        let todo = TodoCreate { title: "test".to_string() };
+        todo_store.create(todo).await.unwrap();
+
+        let todos = todo_store.find_all().await.unwrap();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].title, "test");
+
+        todo_store.delete_all().await.unwrap();
+
+        let todos = todo_store.find_all().await.unwrap();
+        assert_eq!(todos.len(), 0);
     }
 }
