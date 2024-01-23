@@ -113,7 +113,7 @@ impl<T: Clone + Display + HasId> Select<T> {
                                 self.arrow_pos += 1;
                             }
                         }
-                        (KeyCode::Enter, KeyModifiers::NONE) => {
+                        (KeyCode::Char(' '), KeyModifiers::NONE) => {
                             self.toggle_mark(self.items[self.arrow_pos].get_id());
                         }
                         (KeyCode::Char('c'), KeyModifiers::CONTROL) => {

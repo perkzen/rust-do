@@ -40,7 +40,13 @@ async fn main() {
 
     match cmd.subcommand() {
         Some(("list", _)) => {
-            let todos = todo_store.find_all().await.unwrap();
+            let todos = match todo_store.find_all().await {
+                Ok(todos) => todos,
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    return;
+                }
+            };
 
             let completed_todos: Vec<Todo> = todos
                 .iter()
@@ -49,7 +55,7 @@ async fn main() {
                 .collect();
 
             let select = Select::<Todo>::new()
-                .with_prompt("Select a todo")
+                .with_prompt("MARK COMPLETED TODOS (PRESS SPACE TO TOGGLE MARK)")
                 .items(&todos)
                 .default(0)
                 .set_marked(completed_todos)
@@ -64,27 +70,47 @@ async fn main() {
 
             for todo in todos {
                 let is_completed = marked_todo_ids.contains(&todo.id);
-                todo_store
+                match todo_store
                     .update(TodoUpdate {
                         id: todo.id,
                         completed: is_completed,
                     })
-                    .await
-                    .unwrap();
+                    .await {
+                    Ok(_) => (),
+                    Err(err) => eprintln!("Error: {}", err),
+                }
             }
         }
         Some(("add", sub_matches)) => {
             let title = sub_matches.get_one::<String>("title").unwrap();
             let new_todo = TodoCreate { title: title.to_string() };
-            todo_store.create(new_todo).await.unwrap();
+
+            match todo_store.create(new_todo).await {
+                Ok(_) => println!("Todo created successfully"),
+                Err(err) => eprintln!("Error: {}", err),
+            }
         }
         Some(("delete", sub_matches)) => {
             let id_str = sub_matches.get_one::<String>("id").unwrap();
-            let id: i32 = id_str.parse().unwrap();
-            todo_store.delete_one(&id).await.unwrap();
+
+            let id = match id_str.parse::<i32>() {
+                Ok(id) => id,
+                Err(err) => {
+                    eprintln!("Error: Could not convert 'id' to integer: {}", err);
+                    return;
+                }
+            };
+
+            match todo_store.delete_one(&id).await {
+                Ok(_) => println!("Todo deleted successfully"),
+                Err(err) => eprintln!("Error: {}", err),
+            }
         }
         Some(("clear", _)) => {
-            todo_store.delete_all().await.unwrap();
+            match todo_store.delete_all().await {
+                Ok(_) => println!("Todos deleted successfully"),
+                Err(err) => eprintln!("Error: {}", err),
+            }
         }
         _ => println!("No command found"),
     }
