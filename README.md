@@ -7,8 +7,8 @@ RUST DO is a simple CLI todo list application written in Rust.
 - [x] Add a todo
 - [x] List all todos
 - [x] Mark a todo as done
-- [ ] Delete a todo
-- [ ] Delete all todos
+- [X] Delete a todo
+- [X] Delete all todos
 
 
 ## Project structure
