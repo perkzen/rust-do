@@ -64,7 +64,7 @@ impl<T: Clone + Display + HasId> Select<T> {
         }
     }
 
-    pub fn print_prompt(&mut self) {
+    fn print_prompt(&mut self) {
         std::process::Command::new("clear").status().unwrap();
 
         let mut prompt = self.prompt.clone(); // Clone the prompt to make it mutable
